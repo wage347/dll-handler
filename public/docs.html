@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DLL Store API — Docs</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161922;
+    --border: #262b38;
+    --text: #e6e8ee;
+    --muted: #9aa2b1;
+    --accent: #7c9eff;
+    --get: #4caf7d;
+    --post: #d9a441;
+    --delete: #e0656c;
+    --code-bg: #0b0d12;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  header {
+    padding: 48px 24px 24px;
+    max-width: 880px;
+    margin: 0 auto;
+  }
+  header h1 {
+    font-size: 1.8rem;
+    margin: 0 0 8px;
+  }
+  header p {
+    color: var(--muted);
+    margin: 0;
+    font-size: 1rem;
+  }
+  main {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+  section {
+    margin-top: 40px;
+  }
+  h2 {
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .endpoint {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .endpoint-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+  }
+  .method {
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 5px;
+    color: #0f1115;
+  }
+  .method.get { background: var(--get); }
+  .method.post { background: var(--post); }
+  .method.delete { background: var(--delete); }
+  .path { color: var(--text); }
+  .desc { color: var(--muted); margin-bottom: 12px; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    margin: 10px 0;
+  }
+  code {
+    font-family: "SF Mono", Consolas, monospace;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--muted); font-weight: 600; }
+  .note {
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    background: rgba(124,158,255,0.08);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    padding: 24px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DLL Store API</h1>
+  <p>Upload and retrieve binary files (e.g. .dll) backed by SQLite. All bytes are stored as a BLOB column.</p>
+</header>
+
+<main>
+
+  <section>
+    <h2>Overview</h2>
+    <p>Base URL when running locally: <code>http://localhost:3000</code></p>
+    <p>Every stored file gets a numeric <code>id</code>, a SHA-256 hash, size, filename, and upload timestamp. File bytes are only returned by the single-file GET endpoint — the list endpoint returns metadata only.</p>
+  </section>
+
+  <section>
+    <h2>Endpoints</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-title">
+        <span class="method post">POST</span>
+        <span class="path">/api/files</span>
+      </div>
+      <div class="desc">Upload a file. Two supported formats:</div>
+
+      <p><strong>1. multipart/form-data</strong> — field name must be <code>file</code></p>
+      <pre><code>curl -X POST http://localhost:3000/api/files \
+  -F "file=@mylib.dll"</code></pre>
+
+      <p><strong>2. Raw binary</strong> — set <code>Content-Type: application/octet-stream</code> and pass the filename as a query param</p>
+      <pre><code>curl -X POST "http://localhost:3000/api/files?filename=mylib.dll" \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary @mylib.dll</code></pre>
+
+      <p><strong>Response 201:</strong></p>
+      <pre><code>{
+  "id": 1,
+  "filename": "mylib.dll",
+  "size_bytes": 48640,
+  "sha256": "c3ab8ff1...",
+  "uploaded_at": "2026-07-27 10:00:00"
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-title">
+        <span class="method get">GET</span>
+        <span class="path">/api/files</span>
+      </div>
+      <div class="desc">List metadata for all stored files (no bytes returned).</div>
+      <pre><code>curl http://localhost:3000/api/files</code></pre>
+      <pre><code>[
+  {
+    "id": 1,
+    "filename": "mylib.dll",
+    "size_bytes": 48640,
+    "sha256": "c3ab8ff1...",
+    "uploaded_at": "2026-07-27 10:00:00"
+  }
+]</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-title">
+        <span class="method get">GET</span>
+        <span class="path">/api/files/:id</span>
+      </div>
+      <div class="desc">Download the raw bytes of a stored file. Returns <code>application/x-msdownload</code> with a <code>Content-Disposition</code> attachment header.</div>
+      <pre><code>curl -OJ http://localhost:3000/api/files/1</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-title">
+        <span class="method get">GET</span>
+        <span class="path">/api/files/:id/meta</span>
+      </div>
+      <div class="desc">Return metadata only (no bytes) for a single file.</div>
+      <pre><code>curl http://localhost:3000/api/files/1/meta</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-title">
+        <span class="method delete">DELETE</span>
+        <span class="path">/api/files/:id</span>
+      </div>
+      <div class="desc">Delete a stored file by id. Returns <code>204 No Content</code> on success.</div>
+      <pre><code>curl -X DELETE http://localhost:3000/api/files/1</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Database schema</h2>
+    <table>
+      <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+      <tr><td>id</td><td>INTEGER</td><td>Primary key, autoincrement</td></tr>
+      <tr><td>filename</td><td>TEXT</td><td>Original filename as uploaded</td></tr>
+      <tr><td>size_bytes</td><td>INTEGER</td><td>File size in bytes</td></tr>
+      <tr><td>sha256</td><td>TEXT</td><td>Hash of the file content, for integrity checks</td></tr>
+      <tr><td>content</td><td>BLOB</td><td>The raw file bytes</td></tr>
+      <tr><td>uploaded_at</td><td>TEXT</td><td>UTC timestamp, set automatically</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Limits &amp; notes</h2>
+    <div class="note">
+      Max upload size is 200 MB by default (configurable via <code>MAX_FILE_BYTES</code> in <code>server.js</code>). The database file lives at <code>dll_store.db</code> next to the server, or wherever <code>DB_PATH</code> points.
+    </div>
+  </section>
+
+</main>
+
+<footer>DLL Store API — local reference docs</footer>
+
+</body>
+</html>
